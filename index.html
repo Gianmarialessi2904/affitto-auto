@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Affitti Modena · zona Toscanini</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{--paper:#F5F4F0;--ink:#1E2228;--muted:#6B6F76;--ochre:#C8881F;--petrol:#2F5D67;--line:#E3DFD6;--card:#FFFFFF}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:"Inter",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;padding:0 20px 64px}
+  .wrap{max-width:760px;margin:0 auto}
+  header{padding:40px 0 18px;border-bottom:2px solid var(--ink)}
+  .eyebrow{font-family:"Space Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--petrol)}
+  h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(34px,7vw,52px);line-height:1.02;letter-spacing:-.01em;margin:8px 0 4px}
+  h1 em{font-style:italic;color:var(--ochre)}
+  .sub{color:var(--muted);font-size:15px;display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px}
+  .sub b{color:var(--ink);font-weight:600}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:16px}
+  .daypick{display:flex;align-items:center;gap:8px;font-family:"Space Mono",monospace;font-size:13px}
+  select{font-family:"Space Mono",monospace;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 10px;cursor:pointer}
+  .stale{margin-top:12px;font-family:"Space Mono",monospace;font-size:12px;color:#9a6a1f;background:#FBF1DC;border:1px solid #EAD9AE;border-radius:8px;padding:7px 11px;display:none}
+  .anchor{display:flex;align-items:center;gap:10px;margin:16px 0 0;font-family:"Space Mono",monospace;font-size:13px}
+  .anchor .pin{width:10px;height:10px;border-radius:50%;background:var(--ochre);box-shadow:0 0 0 4px rgba(200,136,31,.18)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;padding:22px 0}
+  .chip{font-family:"Space Mono",monospace;font-size:12px;letter-spacing:.04em;border:1px solid var(--line);background:var(--card);color:var(--muted);padding:6px 12px;border-radius:100px;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--ink);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .list{display:flex;flex-direction:column;gap:10px}
+  a.card{display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-decoration:none;color:inherit;transition:.16s ease}
+  a.card:hover{border-color:var(--ochre);transform:translateY(-2px);box-shadow:0 6px 22px -14px rgba(30,34,40,.5)}
+  a.card:focus-visible{outline:2px solid var(--petrol);outline-offset:2px}
+  a.card.mine{border-color:var(--ochre);background:#FFFCF5}
+  .dist{font-family:"Space Mono",monospace;text-align:center}
+  .dist .km{font-size:20px;font-weight:700;color:var(--ochre);line-height:1}
+  .dist .lbl{font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+  .dist .star{font-size:20px;color:var(--ochre);line-height:1}
+  .body .t{font-family:"Fraunces",serif;font-size:17px;font-weight:600;line-height:1.18}
+  .badge{display:inline-block;font-family:"Space Mono",monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:var(--ochre);color:#fff;border-radius:5px;padding:2px 6px;margin-left:8px;vertical-align:2px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:6px;font-size:12.5px;color:var(--muted)}
+  .meta .tag{color:var(--petrol);font-weight:600}
+  .src{display:inline-flex;align-items:center;gap:5px;margin-top:9px;font-family:"Space Mono",monospace;font-size:11px;color:var(--muted)}
+  .src .dot{width:5px;height:5px;border-radius:50%;background:var(--petrol)}
+  .price{font-family:"Space Mono",monospace;text-align:right;white-space:nowrap}
+  .price .v{font-size:18px;font-weight:700}
+  .price .u{font-size:10px;color:var(--muted);display:block}
+  .price.na .v{color:var(--muted);font-weight:400}
+  .empty{padding:40px 0;color:var(--muted);font-size:15px}
+  footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+  footer p{margin-bottom:7px}
+  code{font-family:"Space Mono",monospace;background:#EDEAE2;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px}
+  @media(max-width:540px){
+    a.card{grid-template-columns:54px 1fr;grid-template-areas:"d b" "p p";gap:12px}
+    .dist{grid-area:d}.body{grid-area:b}.price{grid-area:p;text-align:left;padding-top:10px;border-top:1px dashed var(--line)}
+    .price .u{display:inline;margin-left:6px}
+  }
+  @media(prefers-reduced-motion:reduce){a.card{transition:none}a.card:hover{transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Briefing affitti · Modena</div>
+    <h1>Vicino a <em>Viale Toscanini</em></h1>
+    <div class="sub">
+      <span><b id="count">—</b> appartamenti · 2/3 persone</span>
+      <span>aggiornato <b id="updated">—</b></span>
+      <span>zona Buon Pastore · Gottardi</span>
+    </div>
+    <div class="toolbar">
+      <label class="daypick" for="day">Giorno <select id="day"></select></label>
+    </div>
+    <div class="stale" id="stale"></div>
+    <div class="anchor"><span class="pin"></span> punto di riferimento → ordinati per vicinanza</div>
+  </header>
+  <div class="filters" id="filters"></div>
+  <div class="list" id="list"></div>
+  <footer>
+    <p><b>I tuoi link.</b> Aggiungili in <code>miei-link.json</code> (basta l'URL): compaiono qui in cima con badge <b>Tuo</b>, sempre, su tutti i giorni.</p>
+    <p><b>Storico.</b> Il menù "Giorno" in alto ti fa rivedere gli archivi dei giorni precedenti.</p>
+    <p><b>Distanze stimate</b> dal centro-zona, non dall'indirizzo esatto: servono a ordinare dal più vicino. Clicca una scheda per aprire il portale.</p>
+  </footer>
+</div>
+<script>
+let AUTO=[], MINE=[], active="Tutte";
+const fmt=iso=>{try{return new Date(iso).toLocaleString("it-IT",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}catch(e){return iso}};
+const fmtDay=d=>{try{return new Date(d+"T12:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}catch(e){return d}};
+const host=u=>{try{return new URL(u).hostname.replace("www.","")}catch(e){return u}};
+
+function merged(){
+  const mineUrls=new Set(MINE.map(m=>m.url));
+  const auto=AUTO.filter(a=>!mineUrls.has(a.url));
+  return {mine:MINE, auto};
+}
+function buildFilters(){
+  const fEl=document.getElementById("filters"); fEl.innerHTML="";
+  const srcs=["Tutte",...Array.from(new Set(merged().auto.map(d=>d.fonte)))];
+  srcs.forEach(s=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.textContent=s; b.setAttribute("aria-pressed",s===active);
+    b.onclick=()=>{active=s;[...fEl.children].forEach(c=>c.setAttribute("aria-pressed",c.textContent===s));render()};
+    fEl.appendChild(b);
+  });
+}
+function cardEl(d,mine){
+  const a=document.createElement("a");
+  a.className="card"+(mine?" mine":""); a.href=d.url; a.target="_blank"; a.rel="noopener";
+  const meta=[`<span class="tag">${d.tip||"Appartamento"}</span>`,d.locali?`${d.locali} locali`:null,d.mq?`${d.mq} mq`:null,d.zona].filter(Boolean).join("<span> · </span>");
+  const left=mine?`<div class="star">★</div><div class="lbl">tuo</div>`
+                 :`<div class="km">${d.dist??"—"}</div><div class="lbl">km</div>`;
+  const price=d.prezzo?`<div class="price"><span class="v">€${d.prezzo}</span><span class="u">/mese</span></div>`
+                      :`<div class="price na"><span class="v">—</span><span class="u">vedi annuncio</span></div>`;
+  a.innerHTML=`<div class="dist">${left}</div>
+    <div class="body"><div class="t">${d.t||host(d.url)}${mine?'<span class="badge">Tuo</span>':''}</div>
+    <div class="meta">${meta}</div><div class="src"><span class="dot"></span>${mine?host(d.url):d.fonte}</div></div>${price}`;
+  return a;
+}
+function render(){
+  const {mine,auto}=merged();
+  const rows=auto.filter(d=>active==="Tutte"||d.fonte===active).sort((a,b)=>(a.dist??99)-(b.dist??99));
+  document.getElementById("count").textContent=rows.length+mine.length;
+  const list=document.getElementById("list"); list.innerHTML="";
+  mine.forEach(d=>list.appendChild(cardEl(d,true)));
+  if(!rows.length && !mine.length){list.innerHTML='<div class="empty">Nessun annuncio per questo filtro.</div>';return}
+  rows.forEach(d=>list.appendChild(cardEl(d,false)));
+}
+function loadDay(date){
+  fetch(`./history/${date}.json?cb=`+Date.now()).then(r=>r.json()).then(j=>{
+    AUTO=j.listings||[];
+    document.getElementById("updated").textContent=fmt(j.generated_at);
+    const s=document.getElementById("stale");
+    if(j.fresh===false){s.style.display="block";s.textContent="⚠ Quel giorno i portali non hanno risposto: dati ultimi validi del "+j.last_fresh+".";}
+    else s.style.display="none";
+    active="Tutte"; buildFilters(); render();
+  });
+}
+// i tuoi link (una volta sola)
+fetch("./miei-link.json?cb="+Date.now()).then(r=>r.json()).then(j=>{MINE=Array.isArray(j)?j.filter(x=>x.url&&!x.url.includes("INCOLLA-QUI")):[]}).catch(()=>{MINE=[]}).finally(()=>{
+  // indice dei giorni
+  fetch("./history/index.json?cb="+Date.now()).then(r=>r.json()).then(idx=>{
+    const sel=document.getElementById("day");
+    const days=(idx.days||[]).slice().reverse();
+    days.forEach((d,i)=>{const o=document.createElement("option");o.value=d;o.textContent=fmtDay(d)+(i===0?" · oggi":"");sel.appendChild(o)});
+    sel.onchange=()=>loadDay(sel.value);
+    if(days.length) loadDay(days[0]);
+  }).catch(()=>{
+    document.getElementById("list").innerHTML='<div class="empty">Apri la pagina dall\'URL di GitHub Pages: su file:// il browser blocca la lettura dei file.</div>';
+  });
+});
+</script>
+</body>
+</html>
