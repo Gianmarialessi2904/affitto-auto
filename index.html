@@ -129,12 +129,31 @@ const FAV_KEY="affittoauto_fav";
 function loadFavs(){try{return new Set(JSON.parse(localStorage.getItem(FAV_KEY)||"[]"))}catch(e){return new Set()}}
 function saveFavs(){localStorage.setItem(FAV_KEY,JSON.stringify([...FAVS]))}
 let FAVS=loadFavs();
-function toggleFav(url,btn){
-  if(FAVS.has(url)){FAVS.delete(url);btn.textContent="♡";btn.title="Aggiungi ai preferiti";btn.classList.remove("active");}
-  else{FAVS.add(url);btn.textContent="♥";btn.title="Rimuovi dai preferiti";btn.classList.add("active");}
-  saveFavs();
+async function toggleFav(d,btn,card){
+  const url=d.url, adding=!FAVS.has(url);
+  if(adding){FAVS.add(url);btn.textContent="♥";btn.title="Rimuovi dai preferiti";btn.classList.add("active");card.classList.add("fav");}
+  else{FAVS.delete(url);btn.textContent="♡";btn.title="Aggiungi ai preferiti";btn.classList.remove("active");card.classList.remove("fav");}
+  saveFavs(); updateFavChip();
   if(active==="Preferiti")render();
-  updateFavChip();
+  const token=getToken();
+  if(!token) return;
+  try{
+    const f=await ghGet(token);
+    let arr; try{arr=JSON.parse(b64dec(f.content));}catch(e){arr=[];}
+    if(!Array.isArray(arr))arr=[];
+    arr=arr.filter(x=>x&&x.url&&!x.url.includes("INCOLLA-QUI"));
+    const idx=arr.findIndex(x=>x.url===url);
+    if(adding){
+      if(idx>=0){arr[idx].preferito=true;}
+      else{const e={url};if(d.t)e.t=d.t;if(d.zona)e.zona=d.zona;if(d.prezzo)e.prezzo=d.prezzo;e.preferito=true;arr.unshift(e);}
+      if(!MINE.some(m=>m.url===url)){MINE=[{...d,preferito:true},...MINE];}
+      else{const m=MINE.find(m=>m.url===url);if(m)m.preferito=true;}
+    }else{
+      if(idx>=0)delete arr[idx].preferito;
+      const m=MINE.find(m=>m.url===url);if(m)delete m.preferito;
+    }
+    await ghPut(token,JSON.stringify(arr,null,2)+"\n",f.sha,(adding?"preferito: ":"rimuovi preferito: ")+host(url));
+  }catch(e){console.warn("Sync preferiti:",e.message);}
 }
 function updateFavChip(){
   const c=document.querySelector('.chip[data-fav]');
@@ -181,8 +200,7 @@ function cardEl(d,mine){
   const btn=a.querySelector('.fav-btn');
   btn.addEventListener('click',function(e){
     e.preventDefault(); e.stopPropagation();
-    toggleFav(d.url,this);
-    a.classList.toggle('fav',FAVS.has(d.url));
+    toggleFav(d,this,a);
   });
   return a;
 }
@@ -213,7 +231,7 @@ function loadDay(date){
   });
 }
 // i tuoi link (una volta sola)
-fetch("./miei-link.json?cb="+Date.now()).then(r=>r.json()).then(j=>{MINE=Array.isArray(j)?j.filter(x=>x.url&&!x.url.includes("INCOLLA-QUI")):[]}).catch(()=>{MINE=[]}).finally(()=>{
+fetch("./miei-link.json?cb="+Date.now()).then(r=>r.json()).then(j=>{MINE=Array.isArray(j)?j.filter(x=>x.url&&!x.url.includes("INCOLLA-QUI")):[];MINE.forEach(m=>{if(m.preferito)FAVS.add(m.url)});saveFavs();}).catch(()=>{MINE=[]}).finally(()=>{
   // indice dei giorni
   fetch("./history/index.json?cb="+Date.now()).then(r=>r.json()).then(idx=>{
     const sel=document.getElementById("day");
