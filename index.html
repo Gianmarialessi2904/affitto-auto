@@ -50,6 +50,8 @@
   .fav-btn{position:absolute;top:10px;right:12px;background:none;border:none;font-size:26px;cursor:pointer;color:var(--muted);transition:color .15s;line-height:1;padding:6px;font-family:inherit;z-index:1}
   .fav-btn:hover,.fav-btn.active{color:var(--ochre)}
   a.card.fav{border-color:var(--petrol);background:#EAF1F0}
+  .del-btn{position:absolute;bottom:10px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);transition:color .15s;line-height:1;padding:6px;font-family:inherit;z-index:1;opacity:.45}
+  .del-btn:hover{color:#b94040;opacity:1}
   .empty{padding:40px 0;color:var(--muted);font-size:15px}
   .addbox{margin:18px 0 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
   .addbox .lab{font-family:"Space Mono",monospace;font-size:12px;letter-spacing:.04em;color:var(--petrol);text-transform:uppercase;margin-bottom:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;justify-content:space-between}
@@ -159,6 +161,27 @@ function updateFavChip(){
   const c=document.querySelector('.chip[data-fav]');
   if(c) c.textContent="♥ Preferiti"+(FAVS.size?" ("+FAVS.size+")":"");
 }
+const RIM_KEY="affittoauto_rim";
+function loadRimossi(){try{return new Set(JSON.parse(localStorage.getItem(RIM_KEY)||"[]"))}catch(e){return new Set()}}
+function saveRimossi(){localStorage.setItem(RIM_KEY,JSON.stringify([...RIMOSSI]))}
+let RIMOSSI=loadRimossi();
+async function removeListino(url,card){
+  RIMOSSI.add(url); saveRimossi();
+  AUTO=AUTO.filter(a=>a.url!==url);
+  card.style.transition="opacity .25s"; card.style.opacity="0";
+  setTimeout(()=>card.remove(),260);
+  const token=getToken(); if(!token) return;
+  try{
+    let sha=null,arr=[];
+    const r=await fetch(`https://api.github.com/repos/${REPO}/contents/rimossi.json?ref=main`,{headers:GH_HEAD(token),cache:"no-store"});
+    if(r.ok){const j=await r.json();sha=j.sha;try{arr=JSON.parse(b64dec(j.content));}catch(e){arr=[];}}
+    if(!Array.isArray(arr))arr=[];
+    if(!arr.includes(url))arr.push(url);
+    const body={message:"rimosso: "+host(url),content:b64enc(JSON.stringify(arr,null,2)+"\n"),branch:"main"};
+    if(sha)body.sha=sha;
+    await fetch(`https://api.github.com/repos/${REPO}/contents/rimossi.json`,{method:"PUT",headers:GH_HEAD(token),body:JSON.stringify(body)});
+  }catch(e){console.warn("Sync rimossi:",e.message);}
+}
 const fmt=iso=>{try{return new Date(iso).toLocaleString("it-IT",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}catch(e){return iso}};
 const fmtDay=d=>{try{return new Date(d+"T12:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}catch(e){return d}};
 const host=u=>{try{return new URL(u).hostname.replace("www.","")}catch(e){return u}};
@@ -192,15 +215,20 @@ function cardEl(d,mine){
                  :`<div class="km">${d.dist??"—"}</div><div class="lbl">km</div>`;
   const isFav=FAVS.has(d.url);
   const favBtn=`<button class="fav-btn${isFav?' active':''}" title="${isFav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${isFav?'♥':'♡'}</button>`;
+  const delBtn=`<button class="del-btn" title="Nascondi annuncio e non ricalcolare">🗑</button>`;
   const price=d.prezzo?`<div class="price"><span class="v">€${d.prezzo}</span><span class="u">/mese</span></div>`
                       :`<div class="price na"><span class="v">—</span><span class="u">vedi annuncio</span></div>`;
   a.innerHTML=`<div class="dist">${left}</div>
     <div class="body"><div class="t">${d.t||host(d.url)}${mine?'<span class="badge">Tuo</span>':''}</div>
-    <div class="meta">${meta}</div><div class="src"><span class="dot"></span>${mine?host(d.url):d.fonte}</div></div>${price}${favBtn}`;
+    <div class="meta">${meta}</div><div class="src"><span class="dot"></span>${mine?host(d.url):d.fonte}</div></div>${price}${favBtn}${delBtn}`;
   const btn=a.querySelector('.fav-btn');
   btn.addEventListener('click',function(e){
     e.preventDefault(); e.stopPropagation();
     toggleFav(d,this,a);
+  });
+  a.querySelector('.del-btn').addEventListener('click',function(e){
+    e.preventDefault(); e.stopPropagation();
+    removeListino(d.url,a);
   });
   return a;
 }
@@ -208,16 +236,17 @@ function render(){
   const {mine,auto}=merged();
   const list=document.getElementById("list"); list.innerHTML="";
   if(active==="Preferiti"){
-    const all=[...mine,...auto].filter(d=>FAVS.has(d.url));
+    const all=[...mine,...auto].filter(d=>FAVS.has(d.url)&&!RIMOSSI.has(d.url));
     document.getElementById("count").textContent=all.length;
     if(!all.length){list.innerHTML='<div class="empty">Nessun preferito ancora. Clicca ♡ su una scheda per salvarla.</div>';return}
     all.forEach(d=>list.appendChild(cardEl(d,mine.some(m=>m.url===d.url))));
     return;
   }
-  const rows=auto.filter(d=>active==="Tutte"||d.fonte===active).sort((a,b)=>(a.dist??99)-(b.dist??99));
-  document.getElementById("count").textContent=rows.length+mine.length;
-  mine.forEach(d=>list.appendChild(cardEl(d,true)));
-  if(!rows.length && !mine.length){list.innerHTML='<div class="empty">Nessun annuncio per questo filtro.</div>';return}
+  const mineShow=mine.filter(d=>!RIMOSSI.has(d.url));
+  const rows=auto.filter(d=>!RIMOSSI.has(d.url)&&(active==="Tutte"||d.fonte===active)).sort((a,b)=>(a.dist??99)-(b.dist??99));
+  document.getElementById("count").textContent=rows.length+mineShow.length;
+  mineShow.forEach(d=>list.appendChild(cardEl(d,true)));
+  if(!rows.length && !mineShow.length){list.innerHTML='<div class="empty">Nessun annuncio per questo filtro.</div>';return}
   rows.forEach(d=>list.appendChild(cardEl(d,false)));
 }
 function loadDay(date){
@@ -230,6 +259,12 @@ function loadDay(date){
     active="Tutte"; buildFilters(); render();
   });
 }
+// rimossi (parallelo, aggiorna RIMOSSI dal server)
+fetch("./rimossi.json?cb="+Date.now()).then(r=>r.json()).then(j=>{
+  if(!Array.isArray(j))return;
+  const before=RIMOSSI.size; j.forEach(u=>RIMOSSI.add(u));
+  if(RIMOSSI.size!==before){saveRimossi();render();}
+}).catch(()=>{});
 // i tuoi link (una volta sola)
 fetch("./miei-link.json?cb="+Date.now()).then(r=>r.json()).then(j=>{MINE=Array.isArray(j)?j.filter(x=>x.url&&!x.url.includes("INCOLLA-QUI")):[];MINE.forEach(m=>{if(m.preferito)FAVS.add(m.url)});saveFavs();}).catch(()=>{MINE=[]}).finally(()=>{
   // indice dei giorni

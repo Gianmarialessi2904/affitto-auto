@@ -135,6 +135,11 @@ def main():
     now=datetime.datetime.now().isoformat(timespec="seconds")
     path=os.path.join(HIST,f"{today}.json")
     results=run()
+    try:
+        rimossi=set(json.load(open(os.path.join(HERE,"rimossi.json"),encoding="utf-8")))
+        results=[l for l in results if l.get("url") not in rimossi]
+    except Exception:
+        pass
     if results:
         day=dict(date=today,generated_at=now,last_fresh=today,fresh=True,
                  count=len(results),target="Viale Toscanini, Modena",listings=results)
