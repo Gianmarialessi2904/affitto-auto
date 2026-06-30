@@ -48,6 +48,21 @@
   .price .u{font-size:10px;color:var(--muted);display:block}
   .price.na .v{color:var(--muted);font-weight:400}
   .empty{padding:40px 0;color:var(--muted);font-size:15px}
+  .addbox{margin:18px 0 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .addbox .lab{font-family:"Space Mono",monospace;font-size:12px;letter-spacing:.04em;color:var(--petrol);text-transform:uppercase;margin-bottom:10px}
+  .addrow{display:flex;gap:8px;align-items:center}
+  .addrow+.addrow{margin-top:8px}
+  .addbox input{font-family:"Inter",sans-serif;font-size:14px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:9px 11px;flex:1;min-width:0}
+  .addbox input:focus{outline:2px solid var(--petrol);outline-offset:1px;border-color:var(--petrol)}
+  .addbox button{font-family:"Space Mono",monospace;font-size:13px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:8px;padding:9px 16px;cursor:pointer;white-space:nowrap}
+  .addbox button:hover{background:var(--petrol);border-color:var(--petrol)}
+  .addout{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+  .addout-h{font-family:"Space Mono",monospace;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .addout-h button{font-size:11px;padding:4px 10px;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  .addout-h button:hover{background:var(--paper);border-color:var(--ink)}
+  .addbox pre{font-family:"Space Mono",monospace;font-size:12px;background:#EDEAE2;border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+  .addhint{font-size:12px;color:var(--muted);margin-top:8px}
+  @media(max-width:540px){.addrow{flex-wrap:wrap}.addbox .addrow>button{width:100%}}
   footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
   footer p{margin-bottom:7px}
   code{font-family:"Space Mono",monospace;background:#EDEAE2;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px}
@@ -75,6 +90,23 @@
     <div class="stale" id="stale"></div>
     <div class="anchor"><span class="pin"></span> punto di riferimento → ordinati per vicinanza</div>
   </header>
+  <section class="addbox">
+    <div class="lab">+ Aggiungi un link che hai trovato</div>
+    <div class="addrow">
+      <input id="newurl" type="url" inputmode="url" autocomplete="off" placeholder="Incolla qui il link che hai trovato (URL pulito)…">
+      <button id="addbtn" type="button">Aggiungi</button>
+    </div>
+    <div class="addrow">
+      <input id="newlabel" type="text" autocomplete="off" placeholder="Etichetta (facoltativa)">
+      <input id="newzona" type="text" autocomplete="off" placeholder="Zona (facoltativa)">
+      <input id="newprice" type="number" min="0" inputmode="numeric" placeholder="€/mese">
+    </div>
+    <div class="addout" id="addout" hidden>
+      <div class="addout-h">Riga da incollare in <code>miei-link.json</code> <button id="copybtn" type="button">Copia</button></div>
+      <pre id="addjson"></pre>
+      <div class="addhint">Già mostrata qui sotto in anteprima. Per renderla permanente su tutti i dispositivi: incolla la riga dentro le <code>[ … ]</code> di <code>miei-link.json</code> (separala con una virgola se ci sono già altri link) e fai commit — oppure passamela e la committo io.</div>
+    </div>
+  </section>
   <div class="filters" id="filters"></div>
   <div class="list" id="list"></div>
   <footer>
@@ -149,6 +181,36 @@ fetch("./miei-link.json?cb="+Date.now()).then(r=>r.json()).then(j=>{MINE=Array.i
     document.getElementById("list").innerHTML='<div class="empty">Apri la pagina dall\'URL di GitHub Pages: su file:// il browser blocca la lettura dei file.</div>';
   });
 });
+
+// --- aggiunta manuale di un link ---
+function cleanUrl(raw){
+  let u=(raw||"").trim();
+  if(!u) return "";
+  if(!/^https?:\/\//i.test(u)) u="https://"+u;
+  try{const o=new URL(u);o.search="";o.hash="";return o.toString();}catch(e){return "";}
+}
+function addLink(){
+  const url=cleanUrl(document.getElementById("newurl").value);
+  if(!url){alert("Incolla un URL valido (es. https://www.subito.it/…).");return;}
+  const label=document.getElementById("newlabel").value.trim();
+  const zona=document.getElementById("newzona").value.trim();
+  const prezzo=parseInt(document.getElementById("newprice").value,10);
+  const entry={url};
+  if(label) entry.t=label;
+  if(zona) entry.zona=zona;
+  if(!Number.isNaN(prezzo)) entry.prezzo=prezzo;
+  if(!MINE.some(m=>m.url===entry.url)){MINE=[entry,...MINE];render();}
+  const row=JSON.stringify(entry,null,2).split("\n").map(l=>"  "+l).join("\n");
+  document.getElementById("addjson").textContent=row;
+  document.getElementById("addout").hidden=false;
+  ["newurl","newlabel","newzona","newprice"].forEach(id=>document.getElementById(id).value="");
+}
+document.getElementById("addbtn").onclick=addLink;
+document.getElementById("newurl").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addLink();}});
+document.getElementById("copybtn").onclick=()=>{
+  const t=document.getElementById("addjson").textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(t).then(()=>{const b=document.getElementById("copybtn");b.textContent="Copiato ✓";setTimeout(()=>b.textContent="Copia",1500);});}
+};
 </script>
 </body>
 </html>
