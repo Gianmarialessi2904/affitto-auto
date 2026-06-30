@@ -47,6 +47,9 @@
   .price .v{font-size:18px;font-weight:700}
   .price .u{font-size:10px;color:var(--muted);display:block}
   .price.na .v{color:var(--muted);font-weight:400}
+  .fav-btn{display:block;background:none;border:none;font-size:18px;cursor:pointer;color:var(--line);transition:color .15s;line-height:1;padding:0;margin-top:5px;width:100%;text-align:right;font-family:inherit}
+  .fav-btn:hover,.fav-btn.active{color:var(--ochre)}
+  a.card.fav{border-color:var(--petrol);background:#EAF1F0}
   .empty{padding:40px 0;color:var(--muted);font-size:15px}
   .addbox{margin:18px 0 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
   .addbox .lab{font-family:"Space Mono",monospace;font-size:12px;letter-spacing:.04em;color:var(--petrol);text-transform:uppercase;margin-bottom:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;justify-content:space-between}
@@ -122,6 +125,21 @@
 </div>
 <script>
 let AUTO=[], MINE=[], active="Tutte";
+const FAV_KEY="affittoauto_fav";
+function loadFavs(){try{return new Set(JSON.parse(localStorage.getItem(FAV_KEY)||"[]"))}catch(e){return new Set()}}
+function saveFavs(){localStorage.setItem(FAV_KEY,JSON.stringify([...FAVS]))}
+let FAVS=loadFavs();
+function toggleFav(url,btn){
+  if(FAVS.has(url)){FAVS.delete(url);btn.textContent="♡";btn.title="Aggiungi ai preferiti";btn.classList.remove("active");}
+  else{FAVS.add(url);btn.textContent="♥";btn.title="Rimuovi dai preferiti";btn.classList.add("active");}
+  saveFavs();
+  if(active==="Preferiti")render();
+  updateFavChip();
+}
+function updateFavChip(){
+  const c=document.querySelector('.chip[data-fav]');
+  if(c) c.textContent="♥ Preferiti"+(FAVS.size?" ("+FAVS.size+")":"");
+}
 const fmt=iso=>{try{return new Date(iso).toLocaleString("it-IT",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}catch(e){return iso}};
 const fmtDay=d=>{try{return new Date(d+"T12:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}catch(e){return d}};
 const host=u=>{try{return new URL(u).hostname.replace("www.","")}catch(e){return u}};
@@ -133,32 +151,53 @@ function merged(){
 }
 function buildFilters(){
   const fEl=document.getElementById("filters"); fEl.innerHTML="";
+  const fp=document.createElement("button");
+  fp.className="chip"; fp.setAttribute("data-fav","");
+  fp.textContent="♥ Preferiti"+(FAVS.size?" ("+FAVS.size+")":"");
+  fp.setAttribute("aria-pressed",active==="Preferiti");
+  fp.onclick=()=>{active="Preferiti";[...fEl.children].forEach(c=>c.setAttribute("aria-pressed",c===fp));render()};
+  fEl.appendChild(fp);
   const srcs=["Tutte",...Array.from(new Set(merged().auto.map(d=>d.fonte)))];
   srcs.forEach(s=>{
     const b=document.createElement("button");
     b.className="chip"; b.textContent=s; b.setAttribute("aria-pressed",s===active);
-    b.onclick=()=>{active=s;[...fEl.children].forEach(c=>c.setAttribute("aria-pressed",c.textContent===s));render()};
+    b.onclick=()=>{active=s;[...fEl.children].forEach(c=>c.setAttribute("aria-pressed",!c.hasAttribute("data-fav")&&c.textContent===s));render()};
     fEl.appendChild(b);
   });
 }
 function cardEl(d,mine){
   const a=document.createElement("a");
-  a.className="card"+(mine?" mine":""); a.href=d.url; a.target="_blank"; a.rel="noopener";
+  a.className="card"+(mine?" mine":"")+(FAVS.has(d.url)?" fav":""); a.href=d.url; a.target="_blank"; a.rel="noopener";
   const meta=[`<span class="tag">${d.tip||"Appartamento"}</span>`,d.locali?`${d.locali} locali`:null,d.mq?`${d.mq} mq`:null,d.zona].filter(Boolean).join("<span> · </span>");
   const left=mine?`<div class="star">★</div><div class="lbl">tuo</div>`
                  :`<div class="km">${d.dist??"—"}</div><div class="lbl">km</div>`;
-  const price=d.prezzo?`<div class="price"><span class="v">€${d.prezzo}</span><span class="u">/mese</span></div>`
-                      :`<div class="price na"><span class="v">—</span><span class="u">vedi annuncio</span></div>`;
+  const isFav=FAVS.has(d.url);
+  const favBtn=`<button class="fav-btn${isFav?' active':''}" title="${isFav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${isFav?'♥':'♡'}</button>`;
+  const price=d.prezzo?`<div class="price"><span class="v">€${d.prezzo}</span><span class="u">/mese</span>${favBtn}</div>`
+                      :`<div class="price na"><span class="v">—</span><span class="u">vedi annuncio</span>${favBtn}</div>`;
   a.innerHTML=`<div class="dist">${left}</div>
     <div class="body"><div class="t">${d.t||host(d.url)}${mine?'<span class="badge">Tuo</span>':''}</div>
     <div class="meta">${meta}</div><div class="src"><span class="dot"></span>${mine?host(d.url):d.fonte}</div></div>${price}`;
+  const btn=a.querySelector('.fav-btn');
+  btn.addEventListener('click',function(e){
+    e.preventDefault(); e.stopPropagation();
+    toggleFav(d.url,this);
+    a.classList.toggle('fav',FAVS.has(d.url));
+  });
   return a;
 }
 function render(){
   const {mine,auto}=merged();
+  const list=document.getElementById("list"); list.innerHTML="";
+  if(active==="Preferiti"){
+    const all=[...mine,...auto].filter(d=>FAVS.has(d.url));
+    document.getElementById("count").textContent=all.length;
+    if(!all.length){list.innerHTML='<div class="empty">Nessun preferito ancora. Clicca ♡ su una scheda per salvarla.</div>';return}
+    all.forEach(d=>list.appendChild(cardEl(d,mine.some(m=>m.url===d.url))));
+    return;
+  }
   const rows=auto.filter(d=>active==="Tutte"||d.fonte===active).sort((a,b)=>(a.dist??99)-(b.dist??99));
   document.getElementById("count").textContent=rows.length+mine.length;
-  const list=document.getElementById("list"); list.innerHTML="";
   mine.forEach(d=>list.appendChild(cardEl(d,true)));
   if(!rows.length && !mine.length){list.innerHTML='<div class="empty">Nessun annuncio per questo filtro.</div>';return}
   rows.forEach(d=>list.appendChild(cardEl(d,false)));
