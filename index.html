@@ -29,7 +29,7 @@
   .chip:hover{border-color:var(--ink);color:var(--ink)}
   .chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
   .list{display:flex;flex-direction:column;gap:10px}
-  a.card{display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-decoration:none;color:inherit;transition:.16s ease}
+  a.card{display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-decoration:none;color:inherit;transition:.16s ease;position:relative}
   a.card:hover{border-color:var(--ochre);transform:translateY(-2px);box-shadow:0 6px 22px -14px rgba(30,34,40,.5)}
   a.card:focus-visible{outline:2px solid var(--petrol);outline-offset:2px}
   a.card.mine{border-color:var(--ochre);background:#FFFCF5}
@@ -47,7 +47,7 @@
   .price .v{font-size:18px;font-weight:700}
   .price .u{font-size:10px;color:var(--muted);display:block}
   .price.na .v{color:var(--muted);font-weight:400}
-  .fav-btn{display:block;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);transition:color .15s;line-height:1;padding:0;margin-top:5px;width:100%;text-align:right;font-family:inherit}
+  .fav-btn{position:absolute;top:10px;right:12px;background:none;border:none;font-size:26px;cursor:pointer;color:var(--muted);transition:color .15s;line-height:1;padding:6px;font-family:inherit;z-index:1}
   .fav-btn:hover,.fav-btn.active{color:var(--ochre)}
   a.card.fav{border-color:var(--petrol);background:#EAF1F0}
   .empty{padding:40px 0;color:var(--muted);font-size:15px}
@@ -192,11 +192,11 @@ function cardEl(d,mine){
                  :`<div class="km">${d.dist??"—"}</div><div class="lbl">km</div>`;
   const isFav=FAVS.has(d.url);
   const favBtn=`<button class="fav-btn${isFav?' active':''}" title="${isFav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${isFav?'♥':'♡'}</button>`;
-  const price=d.prezzo?`<div class="price"><span class="v">€${d.prezzo}</span><span class="u">/mese</span>${favBtn}</div>`
-                      :`<div class="price na"><span class="v">—</span><span class="u">vedi annuncio</span>${favBtn}</div>`;
+  const price=d.prezzo?`<div class="price"><span class="v">€${d.prezzo}</span><span class="u">/mese</span></div>`
+                      :`<div class="price na"><span class="v">—</span><span class="u">vedi annuncio</span></div>`;
   a.innerHTML=`<div class="dist">${left}</div>
     <div class="body"><div class="t">${d.t||host(d.url)}${mine?'<span class="badge">Tuo</span>':''}</div>
-    <div class="meta">${meta}</div><div class="src"><span class="dot"></span>${mine?host(d.url):d.fonte}</div></div>${price}`;
+    <div class="meta">${meta}</div><div class="src"><span class="dot"></span>${mine?host(d.url):d.fonte}</div></div>${price}${favBtn}`;
   const btn=a.querySelector('.fav-btn');
   btn.addEventListener('click',function(e){
     e.preventDefault(); e.stopPropagation();
