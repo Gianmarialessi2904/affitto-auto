@@ -1,0 +1,120 @@
+{
+  "date": "2026-07-07",
+  "generated_at": "2026-07-07T06:26:13",
+  "last_fresh": "2026-06-30",
+  "fresh": false,
+  "count": 10,
+  "target": "Viale Toscanini, Modena",
+  "listings": [
+    {
+      "fonte": "Wikicasa",
+      "t": "Trilocale Via Guttuso — 2 camere, non arredato",
+      "url": "https://www.wikicasa.it/en/rent-apartments/modena/",
+      "tip": "Trilocale",
+      "locali": 3,
+      "mq": null,
+      "prezzo": null,
+      "dist": 0.6,
+      "zona": "Buon Pastore / Morane"
+    },
+    {
+      "fonte": "Immobiliare",
+      "t": "Appartamento Via Gottardi / Araldi — Università/Policlinico",
+      "url": "https://immobiliare.mitula.it/affitto-appartamento-zona-policlinico-modena",
+      "tip": "Appartamento",
+      "locali": null,
+      "mq": null,
+      "prezzo": null,
+      "dist": 0.6,
+      "zona": "Gottardi"
+    },
+    {
+      "fonte": "ModenaCase",
+      "t": "Nuovo arredato — V.le Moreali, adiacenze Policlinico",
+      "url": "https://www.modenacase.it/annunci/case-e-appartamenti/affitto/modena",
+      "tip": "Appartamento",
+      "locali": null,
+      "mq": null,
+      "prezzo": null,
+      "dist": 1.0,
+      "zona": "Moreali"
+    },
+    {
+      "fonte": "Idealista",
+      "t": "2 camere, ristrutturato e arredato — Zona Musicisti",
+      "url": "https://www.idealista.it/en/affitto-case/modena-modena/",
+      "tip": "Trilocale",
+      "locali": 3,
+      "mq": null,
+      "prezzo": null,
+      "dist": 1.6,
+      "zona": "Musicisti"
+    },
+    {
+      "fonte": "Idealista",
+      "t": "Trilocale arredato ~70 mq — Amendola / Rosselli",
+      "url": "https://www.idealista.it/en/affitto-case/modena-modena/",
+      "tip": "Trilocale",
+      "locali": 3,
+      "mq": 70,
+      "prezzo": null,
+      "dist": 1.8,
+      "zona": "Amendola"
+    },
+    {
+      "fonte": "Nestoria",
+      "t": "Bilocale 64 mq — comodo a università e policlinico",
+      "url": "https://www.nestoria.it/immobiliare/affitto/via-pietro-mascagni_modena",
+      "tip": "Bilocale",
+      "locali": 2,
+      "mq": 64,
+      "prezzo": null,
+      "dist": 2.0,
+      "zona": "Mascagni"
+    },
+    {
+      "fonte": "Nestoria",
+      "t": "2 camere + 2 bagni, transitorio 6–18 mesi, giardino",
+      "url": "https://www.nestoria.it/immobiliare/affitto/via-pietro-mascagni_modena",
+      "tip": "Trilocale",
+      "locali": 3,
+      "mq": null,
+      "prezzo": null,
+      "dist": 2.0,
+      "zona": "Modena"
+    },
+    {
+      "fonte": "ModenaCase",
+      "t": "Max 3 persone — 2 camere matrimoniali, ascensore",
+      "url": "https://www.modenacase.it/annunci/case-e-appartamenti/affitto/modena",
+      "tip": "Trilocale",
+      "locali": 3,
+      "mq": null,
+      "prezzo": null,
+      "dist": 2.2,
+      "zona": "Modena"
+    },
+    {
+      "fonte": "Casa.it",
+      "t": "2 camere + 2 bagni, ristrutturato e arredato",
+      "url": "https://www.casa.it/affitto/residenziale/modena/",
+      "tip": "Trilocale",
+      "locali": 3,
+      "mq": null,
+      "prezzo": 900,
+      "dist": 2.3,
+      "zona": "Adiacenze centro"
+    },
+    {
+      "fonte": "Casa.it",
+      "t": "2 camere matrimoniali — centro storico",
+      "url": "https://www.casa.it/affitto/residenziale/modena/",
+      "tip": "Trilocale",
+      "locali": 3,
+      "mq": null,
+      "prezzo": 990,
+      "dist": 2.3,
+      "zona": "Centro storico"
+    }
+  ]
+}
