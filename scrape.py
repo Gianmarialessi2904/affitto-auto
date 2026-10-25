@@ -117,6 +117,7 @@ def run():
         d,zk=distance(l.get("addr"),l["t"])
         if d is None or d>MAX_KM: continue
         l["dist"]=d; l["zona"]=(zk or "").title(); l.pop("addr",None)
+        l["lat"],l["lon"]=ZONES[zk]          # la pagina ricalcola la distanza dal luogo scelto
         clean.append(l)
     clean.sort(key=lambda x:(x["dist"], x["prezzo"] or 9_999_999))
     return clean[:TOP_N]

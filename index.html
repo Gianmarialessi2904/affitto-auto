@@ -88,7 +88,7 @@
 <div class="wrap">
   <header>
     <div class="eyebrow">Briefing affitti · Modena</div>
-    <h1>Vicino a <em>Viale Toscanini</em></h1>
+    <h1>Vicino a <em id="refname">Viale Toscanini</em></h1>
     <div class="sub">
       <span><b id="count">—</b> appartamenti · 2/3 persone</span>
       <span>aggiornato <b id="updated">—</b></span>
@@ -96,6 +96,9 @@
     </div>
     <div class="toolbar">
       <label class="daypick" for="day">Giorno <select id="day"></select></label>
+      <label class="daypick" for="refplace">Distanza da <select id="refplace"></select></label>
+      <button id="addplacebtn" type="button" class="linklike">+ luogo</button>
+      <button id="delplacebtn" type="button" class="linklike" hidden>elimina luogo</button>
     </div>
     <div class="stale" id="stale"></div>
     <div class="anchor"><span class="pin"></span> punto di riferimento → ordinati per vicinanza</div>
@@ -122,7 +125,8 @@
   <footer>
     <p><b>I tuoi link.</b> Aggiungili in <code>miei-link.json</code> (basta l'URL): compaiono qui in cima con badge <b>Tuo</b>, sempre, su tutti i giorni.</p>
     <p><b>Storico.</b> Il menù "Giorno" in alto ti fa rivedere gli archivi dei giorni precedenti.</p>
-    <p><b>Distanze stimate</b> dal centro-zona, non dall'indirizzo esatto: servono a ordinare dal più vicino. Clicca una scheda per aprire il portale.</p>
+    <p><b>Luoghi.</b> Con "Distanza da" scegli da dove misurare; "+ luogo" aggiunge un indirizzo di Modena (o coordinate) salvato in questo browser.</p>
+    <p><b>Distanze stimate</b> in linea d'aria dal centro-zona dell'annuncio, non dall'indirizzo esatto: servono a ordinare dal più vicino. Clicca una scheda per aprire il portale.</p>
   </footer>
 </div>
 <script>
@@ -186,6 +190,82 @@ const fmt=iso=>{try{return new Date(iso).toLocaleString("it-IT",{weekday:"short"
 const fmtDay=d=>{try{return new Date(d+"T12:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}catch(e){return d}};
 const host=u=>{try{return new URL(u).hostname.replace("www.","")}catch(e){return u}};
 
+// --- luoghi di riferimento (sempre a Modena): la distanza si ricalcola dal luogo scelto ---
+const ZONES={"buon pastore":[44.6352,10.9438],"toscanini":[44.6355,10.9440],"gottardi":[44.6309,10.9466],"gelmini":[44.6306,10.9472],
+  "araldi":[44.6320,10.9460],"morane":[44.6298,10.9381],"policlinico":[44.6386,10.9523],"moreali":[44.6380,10.9510],
+  "universit":[44.6300,10.9480],"sant'agnese":[44.6420,10.9460],"san lazzaro":[44.6470,10.9590],"amendola":[44.6360,10.9620],
+  "rosselli":[44.6360,10.9620],"musicisti":[44.6440,10.9300],"mascagni":[44.6470,10.9300],"viali":[44.6470,10.9270],
+  "centro":[44.6471,10.9252],"san faustino":[44.6360,10.9150],"modena":[44.6471,10.9252]}; // come in scrape.py
+const PRESETS=[{id:"toscanini",name:"Viale Toscanini",lat:44.6355,lon:10.9440},{id:"centro",name:"Centro storico",lat:44.6471,lon:10.9252},
+  {id:"policlinico",name:"Policlinico",lat:44.6386,lon:10.9523},{id:"universita",name:"Università",lat:44.6300,lon:10.9480},
+  {id:"stazione",name:"Stazione FS",lat:44.6545,lon:10.9303}];
+const MODENA_BOX={s:44.55,n:44.72,w:10.80,e:11.05};
+const PLACES_KEY="affittoauto_luoghi", REF_KEY="affittoauto_ref";
+function loadPlaces(){try{const a=JSON.parse(localStorage.getItem(PLACES_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return []}}
+function savePlaces(){try{localStorage.setItem(PLACES_KEY,JSON.stringify(PLACES))}catch(e){}}
+let PLACES=loadPlaces();
+const allPlaces=()=>[...PRESETS,...PLACES];
+let REF=(()=>{let id=null;try{id=localStorage.getItem(REF_KEY)}catch(e){}return allPlaces().find(p=>p.id===id)||PRESETS[0]})();
+function haversine(a,b){
+  const r=x=>x*Math.PI/180, dLa=r(b[0]-a[0]), dLo=r(b[1]-a[1]);
+  const h=Math.sin(dLa/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dLo/2)**2;
+  return 6371*2*Math.asin(Math.sqrt(h));
+}
+function coordsOf(d){
+  if(typeof d.lat==="number"&&typeof d.lon==="number") return [d.lat,d.lon];
+  const blob=((d.zona||"")+" "+(d.t||"")).toLowerCase();   // annunci vecchi senza coordinate
+  for(const k in ZONES) if(blob.includes(k)) return ZONES[k];
+  return null;
+}
+function distOf(d){
+  const c=coordsOf(d);
+  if(!c) return REF.id==="toscanini"?(d.dist??null):null;
+  return Math.round(haversine([REF.lat,REF.lon],c)*10)/10;
+}
+function buildPlaces(){
+  const sel=document.getElementById("refplace"); sel.innerHTML="";
+  allPlaces().forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;o.selected=p.id===REF.id;sel.appendChild(o)});
+  document.getElementById("refname").textContent=REF.name;
+  document.getElementById("delplacebtn").hidden=!PLACES.some(p=>p.id===REF.id);
+}
+function setRef(id){
+  REF=allPlaces().find(p=>p.id===id)||PRESETS[0];
+  try{localStorage.setItem(REF_KEY,REF.id)}catch(e){}
+  buildPlaces(); render();
+}
+async function geocode(q){
+  let lat,lon;
+  const m=q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if(m){lat=+m[1];lon=+m[2];}
+  else{
+    const box=[MODENA_BOX.w,MODENA_BOX.n,MODENA_BOX.e,MODENA_BOX.s].join(",");
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=it&bounded=1&viewbox="+box+"&q="+encodeURIComponent(q+", Modena"),{headers:{Accept:"application/json"}});
+    if(!r.ok) throw new Error("ricerca indirizzo: HTTP "+r.status);
+    const j=await r.json(); if(!j.length) return null;
+    lat=+j[0].lat; lon=+j[0].lon;
+  }
+  const inModena=lat>=MODENA_BOX.s&&lat<=MODENA_BOX.n&&lon>=MODENA_BOX.w&&lon<=MODENA_BOX.e;
+  return inModena?{lat,lon}:null;
+}
+async function addPlace(){
+  const q=prompt('Indirizzo a Modena (es. "Via Emilia Est 100") oppure coordinate "44.64, 10.93":');
+  if(!q||!q.trim()) return;
+  const btn=document.getElementById("addplacebtn"), old=btn.textContent;
+  btn.disabled=true; btn.textContent="cerco…";
+  try{
+    const c=await geocode(q.trim());
+    if(!c){alert("Non trovo quel punto dentro Modena. Prova con via e numero civico.");return;}
+    const name=(prompt("Nome del luogo (es. Lavoro, Palestra):",q.trim())||q).trim();
+    const p={id:"c"+Date.now(),name,lat:+c.lat.toFixed(5),lon:+c.lon.toFixed(5)};
+    PLACES.push(p); savePlaces(); setRef(p.id);
+  }catch(e){alert("Errore: "+e.message);}
+  finally{btn.disabled=false; btn.textContent=old;}
+}
+function delPlace(){
+  if(!confirm(`Eliminare il luogo "${REF.name}"?`)) return;
+  PLACES=PLACES.filter(p=>p.id!==REF.id); savePlaces(); setRef(PRESETS[0].id);
+}
+
 function merged(){
   const mineUrls=new Set(MINE.map(m=>m.url));
   const auto=AUTO.filter(a=>!mineUrls.has(a.url));
@@ -212,7 +292,7 @@ function cardEl(d,mine){
   a.className="card"+(mine?" mine":"")+(FAVS.has(d.url)?" fav":""); a.href=d.url; a.target="_blank"; a.rel="noopener";
   const meta=[`<span class="tag">${d.tip||"Appartamento"}</span>`,d.locali?`${d.locali} locali`:null,d.mq?`${d.mq} mq`:null,d.zona].filter(Boolean).join("<span> · </span>");
   const left=mine?`<div class="star">★</div><div class="lbl">tuo</div>`
-                 :`<div class="km">${d.dist??"—"}</div><div class="lbl">km</div>`;
+                 :`<div class="km">${distOf(d)??"—"}</div><div class="lbl">km</div>`;
   const isFav=FAVS.has(d.url);
   const favBtn=`<button class="fav-btn${isFav?' active':''}" title="${isFav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${isFav?'♥':'♡'}</button>`;
   const delBtn=`<button class="del-btn" title="Nascondi annuncio e non ricalcolare">🗑</button>`;
@@ -243,7 +323,7 @@ function render(){
     return;
   }
   const mineShow=mine.filter(d=>!RIMOSSI.has(d.url));
-  const rows=auto.filter(d=>!RIMOSSI.has(d.url)&&(active==="Tutte"||d.fonte===active)).sort((a,b)=>(a.dist??99)-(b.dist??99));
+  const rows=auto.filter(d=>!RIMOSSI.has(d.url)&&(active==="Tutte"||d.fonte===active)).sort((a,b)=>(distOf(a)??99)-(distOf(b)??99));
   document.getElementById("count").textContent=rows.length+mineShow.length;
   mineShow.forEach(d=>list.appendChild(cardEl(d,true)));
   if(!rows.length && !mineShow.length){list.innerHTML='<div class="empty">Nessun annuncio per questo filtro.</div>';return}
@@ -352,6 +432,10 @@ async function addLink(){
     btn.disabled=false; btn.textContent=old;
   }
 }
+document.getElementById("refplace").onchange=e=>setRef(e.target.value);
+document.getElementById("addplacebtn").onclick=addPlace;
+document.getElementById("delplacebtn").onclick=delPlace;
+buildPlaces();
 document.getElementById("toksetbtn").onclick=setToken;
 document.getElementById("addbtn").onclick=addLink;
 document.getElementById("newurl").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addLink();}});
